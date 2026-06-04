@@ -19,11 +19,6 @@ public sealed class Plugin : IPlugin
     public string Name => "One Cart Quest Reset";
     public string Author => "Codex";
 
-    public void OnLoad()
-    {
-        TryResolveAbandonQuest();
-    }
-
     public void OnQuestEnter(int questId)
     {
         _questActive = true;
@@ -81,7 +76,14 @@ public sealed class Plugin : IPlugin
         try
         {
             Log.Warn($"[{Name}] Abandoning quest {_questId} after one cart.");
-            _abandonQuest.Invoke(Quest.SingletonInstance.Instance, 0u);
+            var questInstance = Quest.SingletonInstance.Instance;
+            if (questInstance == 0)
+            {
+                Log.Error($"[{Name}] Quest singleton is not available.");
+                return;
+            }
+
+            _abandonQuest.Invoke(questInstance, 0u);
         }
         catch (Exception ex)
         {
@@ -108,9 +110,13 @@ public sealed class Plugin : IPlugin
             if (address is null || (nint)address == 0)
                 return false;
 
-            _abandonQuest = new NativeAction<nint, uint>((nint)address);
+            var nativeAddress = (nint)address;
+            if (nativeAddress == 0)
+                return false;
+
+            _abandonQuest = new NativeAction<nint, uint>(nativeAddress);
             _hasAbandonQuest = true;
-            Log.Info($"[{Name}] Resolved Quest:AbandonQuest at 0x{((nint)address).ToInt64():X}.");
+            Log.Info($"[{Name}] Resolved Quest:AbandonQuest at 0x{nativeAddress.ToInt64():X}.");
             return true;
         }
         catch (Exception ex)
