@@ -65,7 +65,7 @@ public sealed class Plugin : IPlugin
             AbandonCurrentQuest();
     }
 
-    private void AbandonCurrentQuest()
+    private unsafe void AbandonCurrentQuest()
     {
         if (_abandonCalled)
             return;
