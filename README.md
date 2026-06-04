@@ -13,11 +13,13 @@
 
 ## 你需要自己下载
 
-请自行下载下面两个内容：
+请自行下载下面内容：
 
 1. SharpPluginLoader 最新 release：
    `https://github.com/Fexty12573/SharpPluginLoader/releases`
-2. .NET 8 Desktop Runtime：
+2. .NET 8 SDK：
+   `https://dotnet.microsoft.com/download/dotnet/8.0`
+3. .NET 8 Desktop Runtime：
    `https://dotnet.microsoft.com/download/dotnet/8.0`
 
 把 SharpPluginLoader 解压到 `MonsterHunterWorld.exe` 所在目录。
@@ -52,3 +54,22 @@ private const float ResetDelaySeconds = 7.0f;
 ```
 
 改完后重新执行 `dotnet publish`，再复制 DLL。
+
+## 还原卡住怎么办
+
+如果 `dotnet restore` 长时间卡住，或者报错正在下载 `Microsoft.AspNetCore.App.Ref.8.0.x`，通常是因为本机没有安装 .NET 8 SDK，只有更新版本的 SDK。构建这个插件建议安装 .NET 8 SDK。
+
+安装后先确认：
+
+```powershell
+dotnet --list-sdks
+dotnet --list-runtimes
+```
+
+如果能看到 `8.0.x`，再清理 NuGet 缓存并重试：
+
+```powershell
+dotnet nuget locals http-cache --clear
+dotnet nuget locals temp --clear
+dotnet restore .\src\OneCartQuestReset\OneCartQuestReset.csproj --source https://api.nuget.org/v3/index.json --disable-parallel --no-cache -v normal
+```
