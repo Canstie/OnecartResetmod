@@ -73,3 +73,24 @@ dotnet nuget locals http-cache --clear
 dotnet nuget locals temp --clear
 dotnet restore .\src\OneCartQuestReset\OneCartQuestReset.csproj --source https://api.nuget.org/v3/index.json --disable-parallel --no-cache -v normal
 ```
+
+## 游戏启动时报缺少 .NET 8
+
+如果打开游戏时报错类似：
+
+```text
+Framework: 'Microsoft.NETCore.App', version '8.0.0' (x64)
+.NET location: D:\Dotnet\
+Failed to initialize hostfxr
+```
+
+说明 SharpPluginLoader 在游戏进程里找到了错误的 .NET 目录。确认 `.NET 8` 已安装在 `C:\Program Files\dotnet` 后，执行：
+
+```powershell
+[Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'User')
+[Environment]::SetEnvironmentVariable('DOTNET_ROOT_X64', 'C:\Program Files\dotnet', 'User')
+[Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'Machine')
+[Environment]::SetEnvironmentVariable('DOTNET_ROOT_X64', 'C:\Program Files\dotnet', 'Machine')
+```
+
+然后完全退出 Steam，再重新打开 Steam 和游戏。只关闭游戏通常不够，因为 Steam 进程可能还保留旧环境变量。
