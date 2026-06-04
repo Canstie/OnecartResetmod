@@ -30,7 +30,7 @@
 
 ```powershell
 dotnet restore .\src\OneCartQuestReset\OneCartQuestReset.csproj
-dotnet publish .\src\OneCartQuestReset\OneCartQuestReset.csproj -c Release
+dotnet build .\src\OneCartQuestReset\OneCartQuestReset.csproj -c Release
 ```
 
 ## 安装
@@ -40,7 +40,7 @@ dotnet publish .\src\OneCartQuestReset\OneCartQuestReset.csproj -c Release
 ```powershell
 $MhwRoot = "D:\SteamLibrary\steamapps\common\Monster Hunter World"
 New-Item -ItemType Directory -Force "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset"
-Copy-Item ".\src\OneCartQuestReset\bin\Release\net8.0\publish\OneCartQuestReset.dll" "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset\" -Force
+Copy-Item ".\src\OneCartQuestReset\bin\Release\net8.0\OneCartQuestReset.dll" "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset\" -Force
 ```
 
 如果你的游戏安装目录不同，请修改 `$MhwRoot`。
@@ -53,7 +53,7 @@ Copy-Item ".\src\OneCartQuestReset\bin\Release\net8.0\publish\OneCartQuestReset.
 private const float ResetDelaySeconds = 7.0f;
 ```
 
-改完后重新执行 `dotnet publish`，再复制 DLL。
+改完后重新执行 `dotnet build`，再复制 DLL。
 
 ## 还原卡住怎么办
 
