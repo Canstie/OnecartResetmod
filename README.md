@@ -2,13 +2,14 @@
 
 这是一个基于 `eigeen/LuaFramework` 的《怪物猎人：世界 / Iceborne》脚本项目，用来替代之前的 SharpPluginLoader C# 插件方案。
 
-目标效果：进入任务后，如果本地玩家血量归零，脚本等待约 7 秒，然后调用游戏自身的 `Abandon Quest` 函数，让任务回到接任务前状态。
+目标效果：进入任务后，如果本地玩家触发猫车死亡事件，脚本等待约 7 秒，然后调用游戏自身的 `Abandon Quest` 函数，让任务回到接任务前状态。
 
 ## 重要说明
 
 - 这个版本不依赖 .NET 8 / .NET 10。
 - 这个版本依赖 `eigeen/LuaFramework`，不是 SharpPluginLoader。
-- 目前 `AbandonQuest` 仍然是原生函数调用，地址特征码来自 SharpPluginLoader 的 `Quest:AbandonQuest` 记录。
+- 脚本优先 hook `PlayerDeath`，如果 hook 失败，会继续使用血量归零检测作为兜底。
+- `AbandonQuest` 和 `PlayerDeath` 的特征码来自旧 `sudden_reset.dll` 的静态分析；不会安装或执行旧 DLL。
 - 建议只在单人或私人房间使用。多人任务中自动放弃任务可能影响其他玩家。
 
 ## 你需要自己下载
@@ -43,6 +44,15 @@ Copy-Item ".\lua_framework\scripts\one_cart_quest_reset.lua" "$MhwRoot\lua_frame
 ```
 
 LuaFramework 会自动加载 `lua_framework\scripts` 目录下的根级 `.lua` 文件。
+
+## 旧 DLL 分析结论
+
+放进 `old_dll\sudden_reset.dll` 的旧插件是 x64 原生 DLL，不是 .NET 程序。它只导出 `DllMain`，依赖 `loader.dll`，并通过特征码扫描两个地址：
+
+- `Abandon`：`F3 0F 2C C0 F3 0F 11 81 A4 31 01 00`，偏移 `-67`
+- `PlayerDeath`：`48 ?? ?? ?? 65 ?? ?? ?? ?? ?? ?? ?? ?? 48 8B F1 44 ?? ?? ?? ?? ?? ?? 41 0F B6 E8 B9 ?? ?? ?? ?? 4C 63 F2 4E 8B 14 C8 41 8B 04 0A 39`，偏移 `-5`
+
+旧 DLL 在死亡处理里调用 `Abandon(..., 5)`，所以当前 Lua 脚本也使用第二参数 `5`。
 
 ## 调整等待时间
 
