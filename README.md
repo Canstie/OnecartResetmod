@@ -6,7 +6,6 @@
 
 ## 重要说明
 
-- 这个版本不依赖 .NET 8 / .NET 10。
 - 这个版本依赖 `eigeen/LuaFramework`，不是 SharpPluginLoader。
 - 脚本优先 hook `PlayerDeath`，如果 hook 失败，会继续使用血量归零检测作为兜底。
 - `AbandonQuest` 和 `PlayerDeath` 的特征码来自旧 `sudden_reset.dll` 的静态分析；不会安装或执行旧 DLL。
@@ -22,17 +21,6 @@ Invoke-WebRequest -Uri "https://github.com/eigeen/LuaFramework/releases/download
 
 下载后解压，把 LuaFramework release 里的文件放到 `MonsterHunterWorld.exe` 所在目录。
 
-## 移除旧 C# 方案
-
-如果之前安装过 SharpPluginLoader / C# 插件，先移除旧插件目录：
-
-```powershell
-$MhwRoot = "D:\Steam\steamapps\common\Monster Hunter World"
-Rename-Item "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset" "OneCartQuestReset.disabled" -ErrorAction SilentlyContinue
-```
-
-如果不再使用 SharpPluginLoader，也可以移除或改名整个 `nativePC\plugins\CSharp` 目录。先改名测试，不建议直接删除。
-
 ## 安装脚本
 
 把本项目脚本复制到 LuaFramework 的脚本目录：
@@ -45,34 +33,3 @@ Copy-Item ".\lua_framework\scripts\one_cart_quest_reset.lua" "$MhwRoot\lua_frame
 
 LuaFramework 会自动加载 `lua_framework\scripts` 目录下的根级 `.lua` 文件。
 
-## 旧 DLL 分析结论
-
-放进 `old_dll\sudden_reset.dll` 的旧插件是 x64 原生 DLL，不是 .NET 程序。它只导出 `DllMain`，依赖 `loader.dll`，并通过特征码扫描两个地址：
-
-- `Abandon`：`F3 0F 2C C0 F3 0F 11 81 A4 31 01 00`，偏移 `-67`
-- `PlayerDeath`：`48 ?? ?? ?? 65 ?? ?? ?? ?? ?? ?? ?? ?? 48 8B F1 44 ?? ?? ?? ?? ?? ?? 41 0F B6 E8 B9 ?? ?? ?? ?? 4C 63 F2 4E 8B 14 C8 41 8B 04 0A 39`，偏移 `-5`
-
-旧 DLL 在死亡处理里调用 `Abandon(..., 5)`，所以当前 Lua 脚本也使用第二参数 `5`。
-
-## 调整等待时间
-
-打开 `lua_framework\scripts\one_cart_quest_reset.lua`，修改：
-
-```lua
-local RESET_DELAY_FRAMES = 420
-```
-
-LuaFramework 的 `core.on_update` 没有传入 delta time，所以这里用帧数近似。420 帧大约是 60 FPS 下的 7 秒。
-
-## 卸载 .NET
-
-确认 LuaFramework 能正常进游戏后，再卸载 .NET。建议通过 Windows 的“应用和功能”卸载：
-
-- Microsoft .NET SDK 8.x
-- Microsoft .NET Runtime 8.x
-- Microsoft Windows Desktop Runtime 8.x
-- Microsoft .NET SDK 10.x
-- Microsoft .NET Runtime 10.x
-- Microsoft Windows Desktop Runtime 10.x
-
-不要直接删除 `C:\Program Files\dotnet` 或 `D:\Dotnet`，除非你确认没有其他程序依赖它们。
