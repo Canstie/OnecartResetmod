@@ -1,96 +1,68 @@
-# One Cart Quest Reset
+# One Cart Quest Reset Lua
 
-这是一个用于《怪物猎人：世界 / Iceborne》的 SharpPluginLoader C# 插件。
+这是一个基于 `eigeen/LuaFramework` 的《怪物猎人：世界 / Iceborne》脚本项目，用来替代之前的 SharpPluginLoader C# 插件方案。
 
-效果：进入任务后，如果本地玩家血量归零，插件会等待一小段时间，然后调用游戏自身的 `Abandon Quest` 逻辑，让任务回到接任务前的状态。适合单人练习、竞速重开，以及不想手动打开菜单重置任务的场景。
+目标效果：进入任务后，如果本地玩家血量归零，脚本等待约 7 秒，然后调用游戏自身的 `Abandon Quest` 函数，让任务回到接任务前状态。
 
 ## 重要说明
 
-- 这是运行时插件，不是普通的 `nativePC` 资源替换。
-- 建议只在单人或私人房间使用。多人任务里，本地放弃任务通常只会让你自己离开任务，可能影响其他玩家体验。
-- 插件执行的是“放弃当前任务”。它不会自动重新接取并出发同一个任务，因为这需要驱动任务板和 UI 状态，强行自动操作更容易软锁。
-- 默认在检测到死亡后等待 7 秒再放弃任务。
+- 这个版本不依赖 .NET 8 / .NET 10。
+- 这个版本依赖 `eigeen/LuaFramework`，不是 SharpPluginLoader。
+- 目前 `AbandonQuest` 仍然是原生函数调用，地址特征码来自 SharpPluginLoader 的 `Quest:AbandonQuest` 记录。
+- 建议只在单人或私人房间使用。多人任务中自动放弃任务可能影响其他玩家。
 
 ## 你需要自己下载
 
-请自行下载下面内容：
-
-1. SharpPluginLoader 最新 release：
-   `https://github.com/Fexty12573/SharpPluginLoader/releases`
-2. .NET 8 SDK：
-   `https://dotnet.microsoft.com/download/dotnet/8.0`
-3. .NET 8 Desktop Runtime：
-   `https://dotnet.microsoft.com/download/dotnet/8.0`
-
-把 SharpPluginLoader 解压到 `MonsterHunterWorld.exe` 所在目录。
-
-## 构建
-
-在本仓库根目录执行：
+LuaFramework v0.3.0：
 
 ```powershell
-dotnet restore .\src\OneCartQuestReset\OneCartQuestReset.csproj
-dotnet build .\src\OneCartQuestReset\OneCartQuestReset.csproj -c Release
+Invoke-WebRequest -Uri "https://github.com/eigeen/LuaFramework/releases/download/v0.3.0/lua-framework_v0.3.0.zip" -OutFile ".\lua-framework_v0.3.0.zip"
 ```
 
-## 安装
+下载后解压，把 LuaFramework release 里的文件放到 `MonsterHunterWorld.exe` 所在目录。
 
-把发布后的 DLL 复制到 MHW 根目录下的 `nativePC\plugins\CSharp\OneCartQuestReset\`：
+## 移除旧 C# 方案
+
+如果之前安装过 SharpPluginLoader / C# 插件，先移除旧插件目录：
 
 ```powershell
-$MhwRoot = "D:\SteamLibrary\steamapps\common\Monster Hunter World"
-New-Item -ItemType Directory -Force "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset"
-Copy-Item ".\src\OneCartQuestReset\bin\Release\net8.0\OneCartQuestReset.dll" "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset\" -Force
+$MhwRoot = "D:\Steam\steamapps\common\Monster Hunter World"
+Rename-Item "$MhwRoot\nativePC\plugins\CSharp\OneCartQuestReset" "OneCartQuestReset.disabled" -ErrorAction SilentlyContinue
 ```
 
-如果你的游戏安装目录不同，请修改 `$MhwRoot`。
+如果不再使用 SharpPluginLoader，也可以移除或改名整个 `nativePC\plugins\CSharp` 目录。先改名测试，不建议直接删除。
 
-## 修改延迟
+## 安装脚本
 
-打开 `src\OneCartQuestReset\Plugin.cs`，修改这一行：
-
-```csharp
-private const float ResetDelaySeconds = 7.0f;
-```
-
-改完后重新执行 `dotnet build`，再复制 DLL。
-
-## 还原卡住怎么办
-
-如果 `dotnet restore` 长时间卡住，或者报错正在下载 `Microsoft.AspNetCore.App.Ref.8.0.x`，通常是因为本机没有安装 .NET 8 SDK，只有更新版本的 SDK。构建这个插件建议安装 .NET 8 SDK。
-
-安装后先确认：
+把本项目脚本复制到 LuaFramework 的脚本目录：
 
 ```powershell
-dotnet --list-sdks
-dotnet --list-runtimes
+$MhwRoot = "D:\Steam\steamapps\common\Monster Hunter World"
+New-Item -ItemType Directory -Force "$MhwRoot\lua_framework\scripts"
+Copy-Item ".\lua_framework\scripts\one_cart_quest_reset.lua" "$MhwRoot\lua_framework\scripts\" -Force
 ```
 
-如果能看到 `8.0.x`，再清理 NuGet 缓存并重试：
+LuaFramework 会自动加载 `lua_framework\scripts` 目录下的根级 `.lua` 文件。
 
-```powershell
-dotnet nuget locals http-cache --clear
-dotnet nuget locals temp --clear
-dotnet restore .\src\OneCartQuestReset\OneCartQuestReset.csproj --source https://api.nuget.org/v3/index.json --disable-parallel --no-cache -v normal
+## 调整等待时间
+
+打开 `lua_framework\scripts\one_cart_quest_reset.lua`，修改：
+
+```lua
+local RESET_DELAY_FRAMES = 420
 ```
 
-## 游戏启动时报缺少 .NET 8
+LuaFramework 的 `core.on_update` 没有传入 delta time，所以这里用帧数近似。420 帧大约是 60 FPS 下的 7 秒。
 
-如果打开游戏时报错类似：
+## 卸载 .NET
 
-```text
-Framework: 'Microsoft.NETCore.App', version '8.0.0' (x64)
-.NET location: D:\Dotnet\
-Failed to initialize hostfxr
-```
+确认 LuaFramework 能正常进游戏后，再卸载 .NET。建议通过 Windows 的“应用和功能”卸载：
 
-说明 SharpPluginLoader 在游戏进程里找到了错误的 .NET 目录。确认 `.NET 8` 已安装在 `C:\Program Files\dotnet` 后，执行：
+- Microsoft .NET SDK 8.x
+- Microsoft .NET Runtime 8.x
+- Microsoft Windows Desktop Runtime 8.x
+- Microsoft .NET SDK 10.x
+- Microsoft .NET Runtime 10.x
+- Microsoft Windows Desktop Runtime 10.x
 
-```powershell
-[Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'User')
-[Environment]::SetEnvironmentVariable('DOTNET_ROOT_X64', 'C:\Program Files\dotnet', 'User')
-[Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'Machine')
-[Environment]::SetEnvironmentVariable('DOTNET_ROOT_X64', 'C:\Program Files\dotnet', 'Machine')
-```
-
-然后完全退出 Steam，再重新打开 Steam 和游戏。只关闭游戏通常不够，因为 Steam 进程可能还保留旧环境变量。
+不要直接删除 `C:\Program Files\dotnet` 或 `D:\Dotnet`，除非你确认没有其他程序依赖它们。

@@ -1,9 +1,8 @@
-bin/
-obj/
+*.zip
+*.7z
+*.rar
 .vs/
 .idea/
 *.user
 *.suo
-*.nupkg
-*.zip
-publish/
+nativePC/
