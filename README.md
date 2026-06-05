@@ -9,6 +9,7 @@
 - 这个版本依赖 `eigeen/LuaFramework`，不是 SharpPluginLoader。
 - 脚本优先 hook `PlayerDeath`，如果 hook 失败，会继续使用血量归零检测作为兜底。
 - `AbandonQuest` 和 `PlayerDeath` 的特征码来自旧 `sudden_reset.dll` 的静态分析；不会安装或执行旧 DLL。
+- 脚本默认关闭；进游戏后按 `F10` 切换启用或停用。
 - 建议只在单人或私人房间使用。多人任务中自动放弃任务可能影响其他玩家。
 
 ## 你需要自己下载
@@ -32,4 +33,8 @@ Copy-Item ".\lua_framework\scripts\one_cart_quest_reset.lua" "$MhwRoot\lua_frame
 ```
 
 LuaFramework 会自动加载 `lua_framework\scripts` 目录下的根级 `.lua` 文件。
+
+## 启用和停用
+
+脚本加载后默认不执行自动重置。进入游戏后按 `F10` 启用，再按一次 `F10` 停用。
 

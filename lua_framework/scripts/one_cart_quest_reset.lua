@@ -1,13 +1,16 @@
 local Common = require("_framework.game.common")
+local KeyCode = require("_framework.input.keycode")
 local Player = require("_framework.game.player")
 local Quest = require("_framework.game.quest")
 
 core.unsafe_mode(true)
 
 local RESET_DELAY_FRAMES = 420
+local TOGGLE_KEY = KeyCode.F10
 local ABANDON_QUEST_PATTERN = "F3 0F 2C C0 F3 0F 11 81 A4 31 01 00"
 local ABANDON_QUEST_OFFSET = -67
 
+local enabled = false
 local queued = false
 local countdown = 0
 local abandoned = false
@@ -59,6 +62,31 @@ local function reset_state()
     last_quest_id = -1
 end
 
+local function set_enabled(value)
+    if enabled == value then
+        return
+    end
+
+    enabled = value
+    reset_state()
+
+    if enabled then
+        log.info("OneCartQuestReset enabled by F10")
+    else
+        log.warn("OneCartQuestReset disabled by F10")
+    end
+end
+
+local function toggle_enabled_if_requested()
+    local pressed = safe_call("toggle_hotkey", function()
+        return sdk.Input.keyboard.is_pressed(TOGGLE_KEY)
+    end) == true
+
+    if pressed then
+        set_enabled(not enabled)
+    end
+end
+
 local function get_abandon_quest()
     if abandon_quest ~= nil then
         return abandon_quest
@@ -100,6 +128,15 @@ local function abandon_current_quest()
 end
 
 core.on_update(function()
+    toggle_enabled_if_requested()
+
+    if not enabled then
+        if queued or abandoned or last_quest_id >= 0 then
+            reset_state()
+        end
+        return
+    end
+
     local quest_id = current_quest_id()
     if quest_id < 0 or not is_player_in_scene() then
         if queued or abandoned or last_quest_id >= 0 then
