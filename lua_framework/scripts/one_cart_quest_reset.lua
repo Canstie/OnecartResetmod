@@ -6,7 +6,7 @@ local Quest = require("_framework.game.quest")
 
 core.unsafe_mode(true)
 
-local RESET_DELAY_FRAMES = 420
+local RESET_DELAY_FRAMES = 300
 local TOGGLE_KEY = KeyCode.F10
 local ABANDON_QUEST_PATTERN = "F3 0F 2C C0 F3 0F 11 81 A4 31 01 00"
 local ABANDON_QUEST_OFFSET = -67
@@ -82,7 +82,7 @@ local function notify(level, message)
         log.info(message)
     end
 
-    chat("[一猫重置] " .. message, color)
+    chat("[猫车重置] " .. message, color)
 end
 
 local function safe_call(name, fn)
@@ -145,9 +145,9 @@ local function set_enabled(value)
     toggle_key_was_down = false
 
     if enabled then
-        notify("info", "已开启")
+        notify("info", "猫车重置已开启")
     else
-        notify("warn", "已关闭")
+        notify("warn", "猫车重置已关闭")
     end
 end
 
@@ -242,7 +242,7 @@ core.on_update(function()
     if not queued and hp <= 0 then
         queued = true
         countdown = RESET_DELAY_FRAMES
-        notify("warn", "猫车了，准备重置")
+        notify("warn", "猫车,即将重置")
         return
     end
 
