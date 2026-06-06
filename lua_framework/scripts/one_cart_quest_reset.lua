@@ -82,7 +82,7 @@ local function notify(level, message)
         log.info(message)
     end
 
-    chat("[OneCart] " .. message, color)
+    chat("[一猫重置] " .. message, color)
 end
 
 local function safe_call(name, fn)
@@ -145,9 +145,9 @@ local function set_enabled(value)
     toggle_key_was_down = false
 
     if enabled then
-        notify("info", "Enabled by F10")
+        notify("info", "已开启")
     else
-        notify("warn", "Disabled by F10")
+        notify("warn", "已关闭")
     end
 end
 
@@ -174,7 +174,7 @@ local function get_abandon_quest()
         ABANDON_QUEST_OFFSET
     )
 
-    notify("info", "Resolved Quest:AbandonQuest")
+    log.info("OneCartQuestReset resolved Quest:AbandonQuest")
     return abandon_quest
 end
 
@@ -199,11 +199,11 @@ local function abandon_current_quest()
             value = 0
         }}, "void")
 
-        notify("warn", "Abandoned quest " .. tostring(last_quest_id) .. " after one cart")
+        notify("warn", "已重置任务")
     end)
 end
 
-notify("info", "Loaded. Press F10 to enable or disable.")
+notify("info", "已加载，按F10开关")
 
 core.on_update(function()
     flush_chat()
@@ -227,7 +227,7 @@ core.on_update(function()
     if last_quest_id ~= quest_id then
         reset_state()
         last_quest_id = quest_id
-        notify("info", "Armed for quest " .. tostring(quest_id))
+        notify("info", "任务已就绪")
     end
 
     if abandoned then
@@ -242,7 +242,7 @@ core.on_update(function()
     if not queued and hp <= 0 then
         queued = true
         countdown = RESET_DELAY_FRAMES
-        notify("warn", "Cart detected; abandoning after " .. tostring(RESET_DELAY_FRAMES) .. " frames")
+        notify("warn", "猫车了，准备重置")
         return
     end
 

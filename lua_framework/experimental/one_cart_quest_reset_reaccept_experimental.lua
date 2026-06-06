@@ -97,7 +97,7 @@ local function notify(level, message)
         log.info(message)
     end
 
-    chat("[OneCartExp] " .. message, color)
+    chat("[一猫重置实验] " .. message, color)
 end
 
 local function safe_call(name, fn)
@@ -172,9 +172,9 @@ local function set_enabled(value)
     toggle_key_was_down = false
 
     if enabled then
-        notify("info", "Enabled by F10")
+        notify("info", "已开启")
     else
-        notify("warn", "Disabled by F10")
+        notify("warn", "已关闭")
     end
 end
 
@@ -201,7 +201,7 @@ local function get_abandon_quest()
         ABANDON_QUEST_OFFSET
     )
 
-    notify("info", "Resolved Quest:AbandonQuest")
+    log.info("OneCartQuestResetExperimental resolved Quest:AbandonQuest")
     return abandon_quest
 end
 
@@ -247,7 +247,7 @@ local function get_accept_quest()
     end
 
     accept_quest = resolve_address_record(ACCEPT_QUEST_NAME)
-    notify("info", "Resolved " .. ACCEPT_QUEST_NAME)
+    log.info("OneCartQuestResetExperimental resolved " .. ACCEPT_QUEST_NAME)
     return accept_quest
 end
 
@@ -257,7 +257,7 @@ local function get_depart_on_quest()
     end
 
     depart_on_quest = resolve_address_record(DEPART_ON_QUEST_NAME)
-    notify("info", "Resolved " .. DEPART_ON_QUEST_NAME)
+    log.info("OneCartQuestResetExperimental resolved " .. DEPART_ON_QUEST_NAME)
     return depart_on_quest
 end
 
@@ -280,7 +280,7 @@ local function schedule_reaccept(quest_id)
     depart_pending = false
     depart_countdown = 0
 
-    notify("warn", "Scheduled quest " .. tostring(quest_id) .. " reaccept")
+    notify("warn", "准备重接任务")
 end
 
 local function accept_pending_quest()
@@ -301,12 +301,12 @@ local function accept_pending_quest()
             value = 0
         }}, "void")
 
-        notify("warn", "Accepted previous quest " .. tostring(quest_id))
+        notify("warn", "已重接任务")
         return true
     end) == true
 
     if not accepted then
-        notify("warn", "Auto reaccept skipped; Quest:AcceptQuest is unavailable")
+        notify("warn", "重接失败")
         clear_reaccept_state()
         return
     end
@@ -330,12 +330,12 @@ local function depart_pending_quest()
             value = 0
         }}, "void")
 
-        notify("warn", "Departed accepted quest")
+        notify("warn", "已出发")
         return true
     end) == true
 
     if not departed then
-        notify("warn", "Auto depart skipped; Quest:DepartOnQuest is unavailable")
+        notify("warn", "出发失败")
     end
 
     clear_reaccept_state()
@@ -382,12 +382,12 @@ local function abandon_current_quest()
             value = 0
         }}, "void")
 
-        notify("warn", "Abandoned quest " .. tostring(last_quest_id) .. " after one cart")
+        notify("warn", "已重置任务")
         schedule_reaccept(last_quest_id)
     end)
 end
 
-notify("info", "Loaded. Press F10 to enable or disable.")
+notify("info", "已加载，按F10开关")
 
 core.on_update(function()
     flush_chat()
@@ -417,7 +417,7 @@ core.on_update(function()
     if last_quest_id ~= quest_id then
         reset_quest_state()
         last_quest_id = quest_id
-        notify("info", "Armed for quest " .. tostring(quest_id))
+        notify("info", "任务已就绪")
     end
 
     if abandoned then
@@ -432,7 +432,7 @@ core.on_update(function()
     if not queued and hp <= 0 then
         queued = true
         countdown = RESET_DELAY_FRAMES
-        notify("warn", "Cart detected; abandoning after " .. tostring(RESET_DELAY_FRAMES) .. " frames")
+        notify("warn", "猫车了，准备重置")
         return
     end
 
