@@ -1,5 +1,6 @@
 local Common = require("_framework.game.common")
 local KeyCode = require("_framework.input.keycode")
+local Message = require("_framework.game.message")
 local Player = require("_framework.game.player")
 local Quest = require("_framework.game.quest")
 
@@ -19,25 +20,69 @@ local abandon_quest = nil
 local quest = nil
 local toggle_key_was_down = false
 local reported_errors = {}
+local pending_chat_messages = {}
+local MAX_PENDING_CHAT_MESSAGES = 16
+local CHAT_COLOR_BLUE = 0
+local CHAT_COLOR_PURPLE = 1
 
-local function chat(message)
-    pcall(function()
-        if sdk ~= nil and type(sdk.chat) == "function" then
-            sdk.chat(message)
-        end
+local function can_show_chat()
+    local ok, in_scene = pcall(function()
+        return Common.is_player_in_scene()
     end)
+    return ok and in_scene == true
+end
+
+local function show_chat_now(message, color)
+    if not can_show_chat() then
+        return false
+    end
+
+    local ok = pcall(function()
+        Message.show_system(message, color)
+    end)
+
+    return ok
+end
+
+local function chat(message, color)
+    if show_chat_now(message, color) then
+        return
+    end
+
+    if #pending_chat_messages >= MAX_PENDING_CHAT_MESSAGES then
+        table.remove(pending_chat_messages, 1)
+    end
+
+    table.insert(pending_chat_messages, { message = message, color = color })
+end
+
+local function flush_chat()
+    if #pending_chat_messages == 0 or not can_show_chat() then
+        return
+    end
+
+    local messages = pending_chat_messages
+    pending_chat_messages = {}
+
+    for _, item in ipairs(messages) do
+        show_chat_now(item.message, item.color)
+    end
 end
 
 local function notify(level, message)
+    local color = CHAT_COLOR_BLUE
+
     if level == "warn" then
         log.warn(message)
+        color = CHAT_COLOR_PURPLE
     elseif level == "error" then
         log.error(message)
+        color = CHAT_COLOR_PURPLE
     else
         log.info(message)
     end
 
-    chat("[OneCart] " .. message)
+    chat("[OneCart] " .. message, color)
 end
 
 local function safe_call(name, fn)
@@ -161,6 +206,7 @@ end
 notify("info", "Loaded. Press F10 to enable or disable.")
 
 core.on_update(function()
+    flush_chat()
     toggle_enabled_if_requested()
 
     if not enabled then
