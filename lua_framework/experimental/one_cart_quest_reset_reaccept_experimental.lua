@@ -32,11 +32,39 @@ local abandon_quest = nil
 local accept_quest = nil
 local depart_on_quest = nil
 local quest = nil
+local toggle_key_was_down = false
+local reported_errors = {}
+
+local function chat(message)
+    pcall(function()
+        if sdk ~= nil and type(sdk.chat) == "function" then
+            sdk.chat(message)
+        end
+    end)
+end
+
+local function notify(level, message)
+    if level == "warn" then
+        log.warn(message)
+    elseif level == "error" then
+        log.error(message)
+    else
+        log.info(message)
+    end
+
+    chat("[OneCartExp] " .. message)
+end
 
 local function safe_call(name, fn)
     local ok, result = pcall(fn)
     if not ok then
-        log.error("OneCartQuestResetExperimental " .. name .. " failed: " .. tostring(result))
+        local message = "OneCartQuestResetExperimental " .. name .. " failed: " .. tostring(result)
+        if not reported_errors[name] then
+            reported_errors[name] = true
+            notify("error", message)
+        else
+            log.error(message)
+        end
         return nil
     end
 
@@ -96,11 +124,12 @@ local function set_enabled(value)
 
     enabled = value
     reset_all_state()
+    toggle_key_was_down = false
 
     if enabled then
-        log.info("OneCartQuestResetExperimental enabled by F10")
+        notify("info", "Enabled by F10")
     else
-        log.warn("OneCartQuestResetExperimental disabled by F10")
+        notify("warn", "Disabled by F10")
     end
 end
 
@@ -109,9 +138,11 @@ local function toggle_enabled_if_requested()
         return sdk.Input.keyboard.is_pressed(TOGGLE_KEY)
     end) == true
 
-    if pressed then
+    if pressed and not toggle_key_was_down then
         set_enabled(not enabled)
     end
+
+    toggle_key_was_down = pressed
 end
 
 local function get_abandon_quest()
@@ -125,7 +156,7 @@ local function get_abandon_quest()
         ABANDON_QUEST_OFFSET
     )
 
-    log.info("OneCartQuestResetExperimental resolved Quest:AbandonQuest")
+    notify("info", "Resolved Quest:AbandonQuest")
     return abandon_quest
 end
 
@@ -171,7 +202,7 @@ local function get_accept_quest()
     end
 
     accept_quest = resolve_address_record(ACCEPT_QUEST_NAME)
-    log.info("OneCartQuestResetExperimental resolved " .. ACCEPT_QUEST_NAME)
+    notify("info", "Resolved " .. ACCEPT_QUEST_NAME)
     return accept_quest
 end
 
@@ -181,7 +212,7 @@ local function get_depart_on_quest()
     end
 
     depart_on_quest = resolve_address_record(DEPART_ON_QUEST_NAME)
-    log.info("OneCartQuestResetExperimental resolved " .. DEPART_ON_QUEST_NAME)
+    notify("info", "Resolved " .. DEPART_ON_QUEST_NAME)
     return depart_on_quest
 end
 
@@ -204,7 +235,7 @@ local function schedule_reaccept(quest_id)
     depart_pending = false
     depart_countdown = 0
 
-    log.warn("OneCartQuestResetExperimental scheduled quest " .. tostring(quest_id) .. " reaccept")
+    notify("warn", "Scheduled quest " .. tostring(quest_id) .. " reaccept")
 end
 
 local function accept_pending_quest()
@@ -225,12 +256,12 @@ local function accept_pending_quest()
             value = 0
         }}, "void")
 
-        log.warn("OneCartQuestResetExperimental accepted previous quest " .. tostring(quest_id))
+        notify("warn", "Accepted previous quest " .. tostring(quest_id))
         return true
     end) == true
 
     if not accepted then
-        log.warn("OneCartQuestResetExperimental auto reaccept skipped; Quest:AcceptQuest is unavailable")
+        notify("warn", "Auto reaccept skipped; Quest:AcceptQuest is unavailable")
         clear_reaccept_state()
         return
     end
@@ -254,12 +285,12 @@ local function depart_pending_quest()
             value = 0
         }}, "void")
 
-        log.warn("OneCartQuestResetExperimental departed accepted quest")
+        notify("warn", "Departed accepted quest")
         return true
     end) == true
 
     if not departed then
-        log.warn("OneCartQuestResetExperimental auto depart skipped; Quest:DepartOnQuest is unavailable")
+        notify("warn", "Auto depart skipped; Quest:DepartOnQuest is unavailable")
     end
 
     clear_reaccept_state()
@@ -306,10 +337,12 @@ local function abandon_current_quest()
             value = 0
         }}, "void")
 
-        log.warn("OneCartQuestResetExperimental abandoned quest " .. tostring(last_quest_id) .. " after one cart")
+        notify("warn", "Abandoned quest " .. tostring(last_quest_id) .. " after one cart")
         schedule_reaccept(last_quest_id)
     end)
 end
+
+notify("info", "Loaded. Press F10 to enable or disable.")
 
 core.on_update(function()
     toggle_enabled_if_requested()
@@ -338,7 +371,7 @@ core.on_update(function()
     if last_quest_id ~= quest_id then
         reset_quest_state()
         last_quest_id = quest_id
-        log.info("OneCartQuestResetExperimental armed for quest " .. tostring(quest_id))
+        notify("info", "Armed for quest " .. tostring(quest_id))
     end
 
     if abandoned then
@@ -353,7 +386,7 @@ core.on_update(function()
     if not queued and hp <= 0 then
         queued = true
         countdown = RESET_DELAY_FRAMES
-        log.warn("OneCartQuestResetExperimental cart detected; abandoning after " .. tostring(RESET_DELAY_FRAMES) .. " frames")
+        notify("warn", "Cart detected; abandoning after " .. tostring(RESET_DELAY_FRAMES) .. " frames")
         return
     end
 

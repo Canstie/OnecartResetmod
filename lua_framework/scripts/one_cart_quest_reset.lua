@@ -17,11 +17,39 @@ local abandoned = false
 local last_quest_id = -1
 local abandon_quest = nil
 local quest = nil
+local toggle_key_was_down = false
+local reported_errors = {}
+
+local function chat(message)
+    pcall(function()
+        if sdk ~= nil and type(sdk.chat) == "function" then
+            sdk.chat(message)
+        end
+    end)
+end
+
+local function notify(level, message)
+    if level == "warn" then
+        log.warn(message)
+    elseif level == "error" then
+        log.error(message)
+    else
+        log.info(message)
+    end
+
+    chat("[OneCart] " .. message)
+end
 
 local function safe_call(name, fn)
     local ok, result = pcall(fn)
     if not ok then
-        log.error("OneCartQuestReset " .. name .. " failed: " .. tostring(result))
+        local message = "OneCartQuestReset " .. name .. " failed: " .. tostring(result)
+        if not reported_errors[name] then
+            reported_errors[name] = true
+            notify("error", message)
+        else
+            log.error(message)
+        end
         return nil
     end
 
@@ -69,11 +97,12 @@ local function set_enabled(value)
 
     enabled = value
     reset_state()
+    toggle_key_was_down = false
 
     if enabled then
-        log.info("OneCartQuestReset enabled by F10")
+        notify("info", "Enabled by F10")
     else
-        log.warn("OneCartQuestReset disabled by F10")
+        notify("warn", "Disabled by F10")
     end
 end
 
@@ -82,9 +111,11 @@ local function toggle_enabled_if_requested()
         return sdk.Input.keyboard.is_pressed(TOGGLE_KEY)
     end) == true
 
-    if pressed then
+    if pressed and not toggle_key_was_down then
         set_enabled(not enabled)
     end
+
+    toggle_key_was_down = pressed
 end
 
 local function get_abandon_quest()
@@ -98,7 +129,7 @@ local function get_abandon_quest()
         ABANDON_QUEST_OFFSET
     )
 
-    log.info("OneCartQuestReset resolved Quest:AbandonQuest")
+    notify("info", "Resolved Quest:AbandonQuest")
     return abandon_quest
 end
 
@@ -123,9 +154,11 @@ local function abandon_current_quest()
             value = 0
         }}, "void")
 
-        log.warn("OneCartQuestReset abandoned quest " .. tostring(last_quest_id) .. " after one cart")
+        notify("warn", "Abandoned quest " .. tostring(last_quest_id) .. " after one cart")
     end)
 end
+
+notify("info", "Loaded. Press F10 to enable or disable.")
 
 core.on_update(function()
     toggle_enabled_if_requested()
@@ -148,7 +181,7 @@ core.on_update(function()
     if last_quest_id ~= quest_id then
         reset_state()
         last_quest_id = quest_id
-        log.info("OneCartQuestReset armed for quest " .. tostring(quest_id))
+        notify("info", "Armed for quest " .. tostring(quest_id))
     end
 
     if abandoned then
@@ -163,7 +196,7 @@ core.on_update(function()
     if not queued and hp <= 0 then
         queued = true
         countdown = RESET_DELAY_FRAMES
-        log.warn("OneCartQuestReset cart detected; abandoning after " .. tostring(RESET_DELAY_FRAMES) .. " frames")
+        notify("warn", "Cart detected; abandoning after " .. tostring(RESET_DELAY_FRAMES) .. " frames")
         return
     end
 
